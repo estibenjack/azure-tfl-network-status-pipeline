@@ -19,10 +19,10 @@ def fetch_line_status():
 
 def transform_line_status(raw_json):
     """
-    - prototypes the transformation logic locally for testing and development
-    - in the actual pipeline, ADF handles this step. this function was written
-      to validate the data shape and field extraction before building the
-      equivalent logic in ADF Data Flow
+    Prototypes the transformation logic locally for testing and development.
+    In the actual pipeline ADF handles this step. Written to validate the
+    data shape and field extraction before building the equivalent logic
+    in ADF Data Flow.
     """
     results = []
     collected_at_ts = datetime.now(timezone.utc)
