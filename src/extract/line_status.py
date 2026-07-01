@@ -1,9 +1,19 @@
+import json
+import logging
+from datetime import datetime, timezone
+
 import requests
 import pandas as pd
-from datetime import datetime, timezone
-from src.utils.config import LINE_API_KEY, TFL_BASE_URL, TFL_MODES, AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY, ADLS_RAW_CONTAINER
-import json
 from azure.storage.filedatalake import DataLakeServiceClient
+
+from src.utils.config import LINE_API_KEY, TFL_BASE_URL, TFL_MODES, AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY, ADLS_RAW_CONTAINER
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 def fetch_line_status():
@@ -11,10 +21,20 @@ def fetch_line_status():
     url = f'{TFL_BASE_URL}/Line/Mode/{TFL_MODES}/Status'
     params = {"app_key": LINE_API_KEY}
 
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-
-    return response.json()
+    try:
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        logger.info("TfL API request successful")
+        return response.json()
+    except requests.exceptions.Timeout:
+        logger.error("TfL API request timed out")
+        raise
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"TfL API returned an error: {e.response.status_code}")
+        raise
+    except requests.exceptions.RequestException as e:
+        logger.error(f"TfL API request failed: {e}")
+        raise
 
 
 def transform_line_status(raw_json):
@@ -76,15 +96,23 @@ def upload_raw(raw_json, collected_at):
     # 2. append_data() - stages the bytes at given offset
     # 3. flush_data() - commits the write (without this, file exists but is empty)
     json_bytes = json_string.encode('utf-8')
-    file_client.create_file()
-    file_client.append_data(json_bytes, offset=0, length=len(json_bytes))
-    file_client.flush_data(len(json_bytes))
+    try:
+        file_client.create_file()
+        file_client.append_data(json_bytes, offset=0, length=len(json_bytes))
+        file_client.flush_data(len(json_bytes))
+    except Exception as e:
+        logger.error(f"Failed to upload to ADLS: {e}")
+        raise
 
 
 def main():
     collected_at = datetime.now(timezone.utc)
+    logger.info("Starting line status collection")
     raw = fetch_line_status()
+    logger.info(f"Fetched {len(raw)} lines from TfL API")
     upload_raw(raw, collected_at)
+    logger.info(
+        f"Upload complete: raw/line-status/{collected_at.strftime('%Y/%m/%d/%H%M')}.json")
 
 
 if __name__ == "__main__":
