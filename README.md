@@ -38,7 +38,7 @@ Two Python collector scripts hit TfL API endpoints on a schedule, land the raw r
 TfL Line Status API (every 15 min)    TfL StopPoint API (monthly)
          |                                       |
    Python collector                        Python collector
-   (light shaping)                         (light shaping)
+   (fetch and upload raw JSON)            (fetch and upload raw JSON)
          |                                       |
          └──────────────┬────────────────────────┘
                         |
@@ -106,14 +106,10 @@ Live TfL Line Status data landed in the raw zone at `raw/line-status/2026/06/30/
 
 - [ ] `stoppoint.py`
 - [ ] Structured logging
+- [ ] Error handling and pipeline failure alerting
 - [ ] GitHub Actions cron
 - [ ] Azure SQL Database (Serverless)
 - [ ] SQL schema and MERGE logic
 - [ ] ADF pipeline
 - [ ] Unit tests
 - [ ] Final README review
-
-### Stretch Goals
-
-- [ ] Error handling and pipeline failure alerting
-- [ ] Managed Identity authentication
